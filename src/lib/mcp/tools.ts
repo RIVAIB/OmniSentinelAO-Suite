@@ -47,6 +47,43 @@ export const MCP_TOOLS = [
             },
             required: ["update_type", "content"]
         }
+    },
+    {
+        name: "github_read_file",
+        description: "Lee el contenido de un archivo en un repositorio de GitHub.",
+        input_schema: {
+            type: "object" as const,
+            properties: {
+                owner: { type: "string", description: "Propietario del repo." },
+                repo: { type: "string", description: "Nombre del repo." },
+                path: { type: "string", description: "Ruta al archivo." }
+            },
+            required: ["owner", "repo", "path"]
+        }
+    },
+    {
+        name: "github_list_files",
+        description: "Lista los archivos en un directorio de un repositorio de GitHub.",
+        input_schema: {
+            type: "object" as const,
+            properties: {
+                owner: { type: "string", description: "Propietario del repo." },
+                repo: { type: "string", description: "Nombre del repo." },
+                path: { type: "string", description: "Ruta al directorio." }
+            },
+            required: ["owner", "repo", "path"]
+        }
+    },
+    {
+        name: "vercel_deployment_status",
+        description: "Verifica el estado del último despliegue en Vercel.",
+        input_schema: {
+            type: "object" as const,
+            properties: {
+                projectId: { type: "string", description: "ID del proyecto en Vercel." }
+            },
+            required: ["projectId"]
+        }
     }
 ];
 

@@ -30,7 +30,7 @@ export function parseCrossCheckStatus(response: string): {
         return { status: 'validated', detail };
     }
     if (response.includes('⚠️ CONTRADICTION')) {
-        const detail = response.match(/⚠️ CONTRADICTION\s*—?\s*(.*?)(?:\n|PROPOSED)/s)?.[1] || '';
+        const detail = response.match(/⚠️ CONTRADICTION\s*—?\s*([\s\S]*?)(?:\n|PROPOSED)/)?.[1] || '';
         return { status: 'contradiction_found', detail: detail.trim() };
     }
     return { status: 'validated', detail: 'Implicit agreement' };

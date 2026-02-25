@@ -7,10 +7,10 @@ export async function streamGeminiResponse(
     systemPrompt: string,
     messages: any[],
     onToken: (token: string) => void,
-    onToolCall?: (toolName: string, args: any) => void
+    onToolCall?: (toolName: string, args: any, toolId?: string) => void
 ) {
     const model = genAI.getGenerativeModel({
-        model: 'gemini-1.5-pro',
+        model: 'gemini-2.0-flash',
         systemInstruction: systemPrompt,
         tools: [{
             functionDeclarations: getGeminiTools()

@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 
 export async function executeMCPTool(sessionId: string, toolName: string, args: any) {
-    const supabase = createClient();
+    const supabase = await createClient();
 
     // 1. Log the tool call start
     const { data: log, error: logError } = await supabase
@@ -42,6 +42,35 @@ export async function executeMCPTool(sessionId: string, toolName: string, args: 
                     message: `Actualización de tipo ${args.update_type} publicada en el feed.`
                 };
                 break;
+
+            case 'github_read_file': {
+                const { owner, repo, path } = args;
+                const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`, {
+                    headers: { 'Authorization': `token ${process.env.GITHUB_TOKEN}` }
+                });
+                const data = await response.json();
+                result = { content: data.content ? Buffer.from(data.content, 'base64').toString() : data };
+                break;
+            }
+
+            case 'github_list_files': {
+                const { owner, repo, path } = args;
+                const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`, {
+                    headers: { 'Authorization': `token ${process.env.GITHUB_TOKEN}` }
+                });
+                result = await response.json();
+                break;
+            }
+
+            case 'vercel_deployment_status': {
+                const { projectId } = args;
+                const response = await fetch(`https://api.vercel.com/v6/deployments?projectId=${projectId}&limit=1`, {
+                    headers: { 'Authorization': `Bearer ${process.env.VERCEL_TOKEN}` }
+                });
+                const data = await response.json();
+                result = data.deployments?.[0] || { error: 'No deployments found' };
+                break;
+            }
 
             default:
                 throw new Error(`Tool ${toolName} not implemented`);

@@ -3,13 +3,14 @@ import { redirect } from 'next/navigation';
 import { ChatRoom } from '@/components/chat/ChatRoom';
 
 interface PageProps {
-    params: {
+    params: Promise<{
         sessionId: string;
-    };
+    }>;
 }
 
 export default async function SessionPage({ params }: PageProps) {
-    const supabase = createClient();
+    const { sessionId } = await params;
+    const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
@@ -19,7 +20,7 @@ export default async function SessionPage({ params }: PageProps) {
     const { data: session } = await supabase
         .from('sessions')
         .select('*')
-        .eq('id', params.sessionId)
+        .eq('id', sessionId)
         .single();
 
     if (!session) {
@@ -29,12 +30,12 @@ export default async function SessionPage({ params }: PageProps) {
     const { data: messages } = await supabase
         .from('messages')
         .select('*')
-        .eq('session_id', params.sessionId)
+        .eq('session_id', sessionId)
         .order('created_at', { ascending: true });
 
     return (
         <ChatRoom
-            sessionId={params.sessionId}
+            sessionId={sessionId}
             initialMessages={messages || []}
             sessionTitle={session.title}
             projectType={session.project_type}

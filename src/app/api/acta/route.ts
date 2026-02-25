@@ -4,7 +4,7 @@ import { generateActa } from '@/lib/agents/acta-generator';
 
 export async function POST(req: NextRequest) {
     const { sessionId } = await req.json();
-    const supabase = createClient();
+    const supabase = await createClient();
 
     // 1. Check auth
     const { data: { user } } = await supabase.auth.getUser();
@@ -38,13 +38,21 @@ export async function POST(req: NextRequest) {
         const visionMatch = (rawMarkdown as string).match(/## 1. VISIÓN ACORDADA\n([\s\S]*?)(?:\n##|$)/);
         const vision = visionMatch?.[1]?.trim() || 'Visión generada';
 
+        // Roadmap Parsing: Extract items from "## 4. HOJA DE RUTA TÉCNICA"
+        const roadmapMatch = (rawMarkdown as string).match(/## 4. HOJA DE RUTA TÉCNICA\n([\s\S]*?)(?:\n##|$)/);
+        const roadmapContent = roadmapMatch?.[1] || '';
+        const roadmapItems = roadmapContent
+            .split('\n')
+            .filter(line => line.trim().startsWith('-') || line.trim().match(/^\d+\./))
+            .map(line => line.replace(/^[- \d.]*/, '').trim());
+
         const { data: acta, error: insertError } = await supabase
             .from('actas')
             .insert({
                 session_id: sessionId,
                 vision: vision,
                 technical_validation: 'Consolidado en markdown',
-                roadmap: [], // Placeholder for parsed JSON roadmap
+                roadmap: roadmapItems,
                 raw_markdown: rawMarkdown,
             })
             .select()

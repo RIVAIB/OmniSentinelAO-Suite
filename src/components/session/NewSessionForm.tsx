@@ -81,7 +81,7 @@ export function NewSessionForm() {
                             id="title"
                             placeholder="Ej: Refactorización ERP v2"
                             value={title}
-                            onChange={(e) => setTitle(e.target.value)}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)}
                         />
                     </div>
                     <div className="grid gap-2">
@@ -105,7 +105,7 @@ export function NewSessionForm() {
                             className="flex min-h-[100px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                             placeholder="Describe el reto técnico, stack actual o requerimientos..."
                             value={context}
-                            onChange={(e) => setContext(e.target.value)}
+                            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setContext(e.target.value)}
                         />
                     </div>
                 </div>

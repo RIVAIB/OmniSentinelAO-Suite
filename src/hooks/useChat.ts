@@ -32,59 +32,75 @@ export function useChat(sessionId: string) {
             const decoder = new TextDecoder();
 
             let currentAgentMsg: Message | null = null;
+            let currentEvent: string | null = null;
 
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
 
                 const chunk = decoder.decode(value);
-                const lines = chunk.split('\n\n');
+                const lines = chunk.split('\n');
 
                 for (const line of lines) {
-                    if (!line.startsWith('event: ')) continue;
-                    const eventMatch = line.match(/event: (.*)\ndata: (([\s\S]*))/);
-                    if (!eventMatch) continue;
+                    const trimmedLine = line.trim();
+                    if (!trimmedLine) continue;
 
-                    const event = eventMatch[1];
-                    const data = JSON.parse(eventMatch[2]);
-
-                    if (event === 'agent_start') {
-                        setActiveAgent(data.agent);
-                        currentAgentMsg = {
-                            id: 'temp-agent-' + Date.now(),
-                            session_id: sessionId,
-                            role: data.agent,
-                            content: '',
-                            created_at: new Date().toISOString()
-                        };
-                        setMessages(prev => [...prev.filter(m => !m.id.startsWith('temp-agent-')), currentAgentMsg!]);
+                    if (trimmedLine.startsWith('event: ')) {
+                        currentEvent = trimmedLine.replace('event: ', '');
+                        continue;
                     }
 
-                    if (event === 'token') {
-                        if (currentAgentMsg) {
-                            currentAgentMsg.content += data.token;
-                            setMessages(prev => prev.map(m => m.id === currentAgentMsg?.id ? { ...currentAgentMsg } : m));
-                        }
-                    }
+                    if (trimmedLine.startsWith('data: ') && currentEvent) {
+                        try {
+                            const data = JSON.parse(trimmedLine.replace('data: ', ''));
 
-                    if (event === 'tool_start') {
-                        setToolCalls(prev => [...prev, { ...data, status: 'pending', id: Date.now() }]);
-                    }
-
-                    if (event === 'tool_complete') {
-                        setToolCalls(prev => prev.map(tc => tc.toolName === data.toolName ? { ...tc, status: 'success', result: data.result } : tc));
-                    }
-
-                    if (event === 'agent_complete') {
-                        setActiveAgent(null);
-                        if (currentAgentMsg) {
-                            currentAgentMsg.id = data.messageId;
-                            if (data.crossCheck) {
-                                currentAgentMsg.cross_check_status = data.crossCheck.status;
-                                currentAgentMsg.cross_check_detail = data.crossCheck.detail;
+                            if (currentEvent === 'agent_start') {
+                                setActiveAgent(data.agent);
+                                currentAgentMsg = {
+                                    id: 'temp-agent-' + Date.now(),
+                                    session_id: sessionId,
+                                    role: data.agent,
+                                    content: '',
+                                    created_at: new Date().toISOString()
+                                };
+                                setMessages(prev => [...prev.filter(m => !m.id.startsWith('temp-agent-')), currentAgentMsg!]);
                             }
-                            setMessages(prev => prev.map(m => m.id.startsWith('temp-agent-') ? { ...currentAgentMsg } as Message : m));
+
+                            if (currentEvent === 'token') {
+                                if (currentAgentMsg) {
+                                    currentAgentMsg.content += data.token;
+                                    setMessages(prev => prev.map(m => m.id === currentAgentMsg?.id ? { ...currentAgentMsg } : m));
+                                }
+                            }
+
+                            if (currentEvent === 'tool_start') {
+                                setToolCalls(prev => [...prev, { ...data, status: 'pending', id: Date.now() }]);
+                            }
+
+                            if (currentEvent === 'tool_complete') {
+                                setToolCalls(prev => prev.map(tc => tc.toolName === data.toolName ? { ...tc, status: 'success', result: data.result } : tc));
+                            }
+
+                            if (currentEvent === 'agent_complete') {
+                                setActiveAgent(null);
+                                if (currentAgentMsg) {
+                                    currentAgentMsg.id = data.messageId;
+                                    if (data.crossCheck) {
+                                        currentAgentMsg.cross_check_status = data.crossCheck.status;
+                                        currentAgentMsg.cross_check_detail = data.crossCheck.detail;
+                                    }
+                                    setMessages(prev => prev.map(m => m.id.startsWith('temp-agent-') ? { ...currentAgentMsg } as Message : m));
+                                }
+                            }
+
+                            if (currentEvent === 'error') {
+                                console.error('Stream error:', data.message);
+                                // Show toast via global emitter or handled by component
+                            }
+                        } catch (e) {
+                            // Part of a multi-line JSON or malformed chunk
                         }
+                        currentEvent = null;
                     }
                 }
             }

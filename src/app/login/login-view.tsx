@@ -39,7 +39,7 @@ export function LoginView() {
                     type="email"
                     placeholder="nombre@ejemplo.com"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
                     required
                     disabled={loading}
                 />
