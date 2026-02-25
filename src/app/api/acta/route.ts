@@ -38,8 +38,8 @@ export async function POST(req: NextRequest) {
         const visionMatch = (rawMarkdown as string).match(/## 1. VISIÓN ACORDADA\n([\s\S]*?)(?:\n##|$)/);
         const vision = visionMatch?.[1]?.trim() || 'Visión generada';
 
-        // Roadmap Parsing: Extract items from "## 4. HOJA DE RUTA TÉCNICA"
-        const roadmapMatch = (rawMarkdown as string).match(/## 4. HOJA DE RUTA TÉCNICA\n([\s\S]*?)(?:\n##|$)/);
+        // Roadmap Parsing: Extract items from "## 5. HOJA DE RUTA TÉCNICA"
+        const roadmapMatch = (rawMarkdown as string).match(/## 5\. HOJA DE RUTA TÉCNICA\n([\s\S]*?)(?:\n##|$)/);
         const roadmapContent = roadmapMatch?.[1] || '';
         const roadmapItems = roadmapContent
             .split('\n')

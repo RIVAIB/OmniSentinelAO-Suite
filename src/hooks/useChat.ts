@@ -95,7 +95,13 @@ export function useChat(sessionId: string) {
 
                             if (currentEvent === 'error') {
                                 console.error('Stream error:', data.message);
-                                // Show toast via global emitter or handled by component
+                                setMessages(prev => [...prev, {
+                                    id: 'error-' + Date.now(),
+                                    session_id: sessionId,
+                                    role: 'system' as any,
+                                    content: `⚠️ Error: ${data.message}`,
+                                    created_at: new Date().toISOString()
+                                }]);
                             }
                         } catch (e) {
                             // Part of a multi-line JSON or malformed chunk

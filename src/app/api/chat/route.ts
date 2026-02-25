@@ -61,6 +61,8 @@ export async function POST(req: NextRequest) {
                 content: m.role === 'richard' ? m.content : `[${m.role.toUpperCase()}]: ${m.content}`
             })) || [];
 
+            const MAX_TOOL_ROUNDS = 5;
+
             try {
 
                 if (mode === 'direct' && targetAgent) {
@@ -71,6 +73,7 @@ export async function POST(req: NextRequest) {
                     let fullResponse = '';
                     const startTime = Date.now();
                     let currentMessages = [...formattedHistory];
+                    let toolRound = 0;
 
                     const runAgent = async () => {
                         await streamFn(
@@ -81,6 +84,11 @@ export async function POST(req: NextRequest) {
                                 fullResponse += token;
                             },
                             async (toolName, args, toolId) => {
+                                toolRound++;
+                                if (toolRound > MAX_TOOL_ROUNDS) {
+                                    send('error', { message: 'Límite de herramientas alcanzado (max 5 rondas)' });
+                                    return;
+                                }
                                 send('tool_start', { toolName, args });
                                 const result = await executeMCPTool(sessionId, toolName, args);
                                 send('tool_complete', { toolName, result });
@@ -145,6 +153,7 @@ export async function POST(req: NextRequest) {
                     let firstResponse = '';
                     const startTime1 = Date.now();
                     let firstMessages = [...formattedHistory];
+                    let toolRound1 = 0;
 
                     const runFirstAgent = async () => {
                         await firstStreamFn(
@@ -155,6 +164,11 @@ export async function POST(req: NextRequest) {
                                 firstResponse += token;
                             },
                             async (toolName, args, toolId) => {
+                                toolRound1++;
+                                if (toolRound1 > MAX_TOOL_ROUNDS) {
+                                    send('error', { message: 'Límite de herramientas alcanzado' });
+                                    return;
+                                }
                                 send('tool_start', { toolName, args });
                                 const result = await executeMCPTool(sessionId, toolName, args);
                                 send('tool_complete', { toolName, result });
@@ -209,6 +223,7 @@ export async function POST(req: NextRequest) {
                     let secondResponse = '';
                     const startTime2 = Date.now();
                     let secondMessages = [...historyWithCrossCheck];
+                    let toolRound2 = 0;
 
                     const runSecondAgent = async () => {
                         await secondStreamFn(
@@ -219,6 +234,11 @@ export async function POST(req: NextRequest) {
                                 secondResponse += token;
                             },
                             async (toolName, args, toolId) => {
+                                toolRound2++;
+                                if (toolRound2 > MAX_TOOL_ROUNDS) {
+                                    send('error', { message: 'Límite de herramientas alcanzado' });
+                                    return;
+                                }
                                 send('tool_start', { toolName, args });
                                 const result = await executeMCPTool(sessionId, toolName, args);
                                 send('tool_complete', { toolName, result });
@@ -270,6 +290,11 @@ export async function POST(req: NextRequest) {
                 console.error('Chat API Error:', error);
                 send('error', { message: error.message });
             } finally {
+                // Update session timestamp so sidebar sorts correctly
+                await supabase
+                    .from('sessions')
+                    .update({ updated_at: new Date().toISOString() })
+                    .eq('id', sessionId);
                 controller.close();
             }
         }

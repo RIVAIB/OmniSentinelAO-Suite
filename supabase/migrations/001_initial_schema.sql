@@ -78,3 +78,17 @@ CREATE POLICY "Users see mcp_logs from own sessions" ON mcp_logs
 
 -- Enable realtime for messages
 ALTER PUBLICATION supabase_realtime ADD TABLE messages;
+
+-- Auto-update updated_at on sessions
+CREATE OR REPLACE FUNCTION update_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER sessions_updated_at
+    BEFORE UPDATE ON sessions
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at();
