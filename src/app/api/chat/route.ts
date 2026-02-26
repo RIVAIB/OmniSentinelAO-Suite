@@ -130,7 +130,7 @@ export async function POST(req: NextRequest) {
                             role: targetAgent,
                             content: fullResponse,
                             metadata: {
-                                model: targetAgent === 'claude' ? 'claude-sonnet-4-5' : 'gemini-2.0-flash',
+                                model: targetAgent === 'claude' ? 'claude-sonnet-4-5' : 'gemini-2.5-flash',
                                 latency_ms: Date.now() - startTime
                             }
                         })
@@ -202,7 +202,7 @@ export async function POST(req: NextRequest) {
                             role: firstAgent,
                             content: firstResponse,
                             metadata: {
-                                model: firstAgent === 'claude' ? 'claude-sonnet-4-5' : 'gemini-2.0-flash',
+                                model: firstAgent === 'claude' ? 'claude-sonnet-4-5' : 'gemini-2.5-flash',
                                 latency_ms: Date.now() - startTime1
                             }
                         })
@@ -276,7 +276,7 @@ export async function POST(req: NextRequest) {
                             cross_check_status: status,
                             cross_check_detail: detail,
                             metadata: {
-                                model: secondAgent === 'claude' ? 'claude-sonnet-4-5' : 'gemini-2.0-flash',
+                                model: secondAgent === 'claude' ? 'claude-sonnet-4-5' : 'gemini-2.5-flash',
                                 latency_ms: Date.now() - startTime2
                             }
                         })
