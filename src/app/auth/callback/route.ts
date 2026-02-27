@@ -6,7 +6,9 @@ export async function GET(request: Request) {
     const code = searchParams.get('code');
     const token_hash = searchParams.get('token_hash');
     const type = searchParams.get('type');
-    const next = searchParams.get('next') ?? '/dashboard';
+    // If 'next' is not in the URL (e.g. Supabase stripped query params from emailRedirectTo),
+    // fall back to /auth/redirect which reads localStorage for the intended destination.
+    const next = searchParams.get('next') ?? '/auth/redirect';
     const error = searchParams.get('error');
     const error_description = searchParams.get('error_description');
 
