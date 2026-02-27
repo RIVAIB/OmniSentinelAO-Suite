@@ -19,6 +19,7 @@ import {
     History,
     Zap,
     Power,
+    Building2,
 } from 'lucide-react';
 
 // ─── Types ───────────────────────────────────────────────────
@@ -45,6 +46,7 @@ const NAV_ITEMS: NavItem[] = [
     { id: 'conversations', label: 'Conversaciones', href: '/conversations', icon: <MessageSquare size={18} /> },
     { id: 'warroom', label: 'War Room', href: '/room', icon: <Swords size={18} /> },
     { id: 'analytics', label: 'Analytics', href: '/analytics', icon: <BarChart3 size={18} /> },
+    { id: 'office', label: 'Virtual Office', href: '/office-editor', icon: <Building2 size={18} /> },
     { id: 'settings', label: 'Configuración', href: '/settings', icon: <Settings size={18} /> },
 ];
 

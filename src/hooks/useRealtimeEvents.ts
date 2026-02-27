@@ -53,9 +53,9 @@ export function useRealtimeEvents(initialLimit = 50): {
             .select('*, agents(id, name)')
             .order('created_at', { ascending: false })
             .limit(initialLimit)
-            .then(({ data }) => {
+            .then(({ data }: { data: LiveEvent[] | null }) => {
                 if (data) {
-                    setEvents([...(data as LiveEvent[])].reverse());
+                    setEvents([...data].reverse());
                 }
             });
     }, [initialLimit]);
