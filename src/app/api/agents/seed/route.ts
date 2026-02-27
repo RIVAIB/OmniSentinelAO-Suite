@@ -1,12 +1,12 @@
 // src/app/api/agents/seed/route.ts
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { RIVAIB_AGENTS } from '@/data/agents';
 import { ok } from '@/lib/api/response';
 import { dbError, serverError } from '@/lib/api/errors';
 
 export async function POST() {
   try {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     // Fetch existing agent names to avoid duplicates (no UNIQUE constraint required)
     const { data: existing } = await supabase
