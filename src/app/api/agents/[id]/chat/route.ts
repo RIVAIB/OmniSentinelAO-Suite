@@ -28,6 +28,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     if (agentError || !agent) return notFound(`Agent ${id}`);
 
+    if ((agent as { status: string }).status !== 'active') {
+      return badRequest(`Agent ${id} is not active`);
+    }
+
     let convId = conversationId;
     if (!convId) {
       convId = await createConversation('webchat', 'dashboard-test', 'Test User');
