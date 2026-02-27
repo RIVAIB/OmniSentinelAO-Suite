@@ -12,7 +12,7 @@ export async function POST() {
       name: a.name,
       type: a.type,
       status: a.status,
-      config: a.config ?? {},
+      config: { ...(a.config ?? {}), accentColor: a.accentColor, icon: a.icon },
     }));
 
     const { data, error } = await supabase

@@ -40,8 +40,8 @@ function toAgentMeta(a: ApiAgent): AgentMeta & { id: string } {
         type: a.type as AgentMeta['type'],
         status: a.status as AgentMeta['status'],
         role: (configObj.description as string) ?? a.role ?? a.name,
-        accentColor: COLOR_MAP[a.type] ?? 'cyan',
-        icon: ICON_MAP[a.type] ?? '🤖',
+        accentColor: (configObj.accentColor as string) ?? COLOR_MAP[a.type] ?? 'cyan',
+        icon: (configObj.icon as string) ?? ICON_MAP[a.type] ?? '🤖',
         config: configObj,
         integrations: (configObj.channels as string[]) ?? [],
     };
