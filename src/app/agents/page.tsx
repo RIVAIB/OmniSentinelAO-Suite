@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Search, Filter, Bot, Zap, Wrench, AlertCircle } from 'lucide-react';
+import { Search, Filter, Bot, Zap, Wrench, AlertCircle, Loader2 } from 'lucide-react';
 import AgentCard from '@/components/agents/AgentCard';
 import type { AgentMeta } from '@/data/agents';
 import { ACCENT_CSS } from '@/data/agents';
@@ -102,6 +102,7 @@ export default function AgentsPage() {
     const [search, setSearch] = useState('');
     const [typeFilter, setTypeFilter] = useState<FilterType>('all');
     const [statusFilter, setStatusFilter] = useState<FilterStatus>('all');
+    const [seeding, setSeeding] = useState(false);
 
     // ── Fetch ─────────────────────────────────────────────────────────────
     const fetchAgents = useCallback(async () => {
@@ -128,6 +129,20 @@ export default function AgentsPage() {
     useEffect(() => {
         fetchAgents();
     }, [fetchAgents]);
+
+    // ── Seed agents ───────────────────────────────────────────────────────
+    async function handleSeed() {
+        setSeeding(true);
+        try {
+            const res = await fetch('/api/agents/seed', { method: 'POST' });
+            if (!res.ok) throw new Error(`Seed failed: ${res.status}`);
+            await fetchAgents();
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Error al inicializar agentes');
+        } finally {
+            setSeeding(false);
+        }
+    }
 
     // ── Toggle status via PATCH ────────────────────────────────────────────
     async function handleToggle(id: string, newStatus: string) {
@@ -344,11 +359,35 @@ export default function AgentsPage() {
                     style={{ color: 'var(--text-muted)' }}
                 >
                     <Bot size={40} className="mx-auto mb-3 opacity-30" />
-                    <p className="text-sm">
-                        {agents.length === 0
-                            ? 'No hay agentes en la base de datos aún.'
-                            : 'No se encontraron agentes con esos filtros.'}
-                    </p>
+                    {agents.length === 0 ? (
+                        <>
+                            <p className="text-sm mb-4">No hay agentes en la base de datos aún.</p>
+                            <button
+                                onClick={handleSeed}
+                                disabled={seeding}
+                                className="mx-auto flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all"
+                                style={{
+                                    background: seeding ? 'rgba(255,255,255,0.04)' : 'rgba(34,211,238,0.12)',
+                                    color: seeding ? 'var(--text-muted)' : 'var(--accent-cyan)',
+                                    border: seeding ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(34,211,238,0.22)',
+                                }}
+                            >
+                                {seeding ? (
+                                    <>
+                                        <Loader2 size={14} className="animate-spin" />
+                                        Inicializando…
+                                    </>
+                                ) : (
+                                    <>
+                                        <Zap size={14} />
+                                        Inicializar agentes
+                                    </>
+                                )}
+                            </button>
+                        </>
+                    ) : (
+                        <p className="text-sm">No se encontraron agentes con esos filtros.</p>
+                    )}
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
