@@ -250,6 +250,7 @@ export default function AgentCard({ agent, onToggle }: AgentCardProps) {
             {/* ── Test Chat Modal ── */}
             {chatOpen && (
                 <AgentTestChat
+                    agentId={agent.id ?? ''}
                     agentName={agent.codename}
                     agentIcon={agent.icon}
                     accentColor={agent.accentColor}

@@ -12,6 +12,7 @@ interface ChatMessage {
 }
 
 interface AgentTestChatProps {
+    agentId: string;
     agentName: string;
     agentIcon: string;
     accentColor: string;
@@ -25,6 +26,7 @@ const COLOR_MAP: Record<string, string> = {
 };
 
 export default function AgentTestChat({
+    agentId,
     agentName,
     agentIcon,
     accentColor,
@@ -59,21 +61,17 @@ export default function AgentTestChat({
         setSending(true);
 
         try {
-            const res = await fetch('/api/chat', {
+            const res = await fetch(`/api/agents/${agentId}/chat`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     message: text,
-                    agentOverride: agentName,
-                    channel: 'webchat',
-                    contactId: 'test-user',
-                    contactName: 'Test User',
                     conversationId: convId ?? undefined,
                 }),
             });
 
             const json = (await res.json()) as {
-                data?: { conversationId: string; response: string; agent: string };
+                data?: { conversationId: string; response: string; agentName: string };
                 error?: string;
             };
 
@@ -84,7 +82,7 @@ export default function AgentTestChat({
                     {
                         role: 'assistant',
                         content: json.data!.response,
-                        agent: json.data!.agent,
+                        agent: json.data!.agentName,
                         timestamp: new Date(),
                     },
                 ]);
