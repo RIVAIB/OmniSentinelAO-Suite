@@ -25,10 +25,15 @@ function LoginForm() {
         e.preventDefault()
         setLoading(true)
 
+        const next = searchParams.get('next') ?? ''
+        const callbackUrl = next
+            ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`
+            : `${window.location.origin}/auth/callback`
+
         const { error } = await supabase.auth.signInWithOtp({
             email,
             options: {
-                emailRedirectTo: `${window.location.origin}/auth/callback`,
+                emailRedirectTo: callbackUrl,
             },
         })
 

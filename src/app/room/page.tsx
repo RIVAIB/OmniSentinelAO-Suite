@@ -82,7 +82,7 @@ export default function WarRoomPage() {
 
                 {/* Show login button or new session form depending on auth state */}
                 {isAuthed === false ? (
-                    <Link href="/login">
+                    <Link href="/login?next=/room">
                         <Button className="bg-purple-600 hover:bg-purple-700 gap-2">
                             <LogIn size={16} />
                             Iniciar sesión
@@ -105,7 +105,7 @@ export default function WarRoomPage() {
                     <Swords size={16} style={{ color: 'var(--accent-violet)', flexShrink: 0 }} />
                     <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                         Para crear nuevas sesiones necesitas{' '}
-                        <Link href="/login" className="font-semibold underline" style={{ color: 'var(--accent-violet)' }}>
+                        <Link href="/login?next=/room" className="font-semibold underline" style={{ color: 'var(--accent-violet)' }}>
                             iniciar sesión
                         </Link>
                         . Puedes ver las sesiones existentes sin cuenta.
