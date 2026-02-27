@@ -40,7 +40,7 @@ export function NewSessionForm() {
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
-                toast.error('Debes iniciar sesión para crear una sesión');
+                router.push('/login');
                 return;
             }
 

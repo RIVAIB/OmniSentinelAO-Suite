@@ -1,18 +1,27 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { SessionList } from '@/components/session/SessionList';
 import { NewSessionForm } from '@/components/session/NewSessionForm';
 import PageLoader from '@/components/ui/PageLoader';
+import { Swords, LogIn } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export default function WarRoomPage() {
     const [sessions, setSessions] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isAuthed, setIsAuthed] = useState<boolean | null>(null);
     const supabase = createClient();
 
     useEffect(() => {
-        async function loadSessions() {
+        async function init() {
+            // Check auth first
+            const { data: { user } } = await supabase.auth.getUser();
+            setIsAuthed(!!user);
+
+            // Load sessions regardless (anon can read public sessions)
             const { data } = await supabase
                 .from('sessions')
                 .select('*')
@@ -21,13 +30,17 @@ export default function WarRoomPage() {
             setSessions(data || []);
             setLoading(false);
         }
-        loadSessions();
+        init();
 
         // Realtime subscription
         const channel = supabase
             .channel('room-sessions')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'sessions' }, () => {
-                loadSessions();
+                supabase
+                    .from('sessions')
+                    .select('*')
+                    .order('updated_at', { ascending: false })
+                    .then(({ data }: { data: any[] | null }) => setSessions(data || []));
             })
             .subscribe();
 
@@ -66,8 +79,39 @@ export default function WarRoomPage() {
                         Technical Debate & Decision Engine — Claude × Gemini
                     </p>
                 </div>
-                <NewSessionForm />
+
+                {/* Show login button or new session form depending on auth state */}
+                {isAuthed === false ? (
+                    <Link href="/login">
+                        <Button className="bg-purple-600 hover:bg-purple-700 gap-2">
+                            <LogIn size={16} />
+                            Iniciar sesión
+                        </Button>
+                    </Link>
+                ) : (
+                    <NewSessionForm />
+                )}
             </div>
+
+            {/* Auth notice if not logged in */}
+            {isAuthed === false && (
+                <div
+                    className="flex items-center gap-3 rounded-xl px-4 py-3"
+                    style={{
+                        background: 'rgba(139,92,246,0.08)',
+                        border: '1px solid rgba(139,92,246,0.25)',
+                    }}
+                >
+                    <Swords size={16} style={{ color: 'var(--accent-violet)', flexShrink: 0 }} />
+                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                        Para crear nuevas sesiones necesitas{' '}
+                        <Link href="/login" className="font-semibold underline" style={{ color: 'var(--accent-violet)' }}>
+                            iniciar sesión
+                        </Link>
+                        . Puedes ver las sesiones existentes sin cuenta.
+                    </p>
+                </div>
+            )}
 
             {/* Sessions */}
             <SessionList initialSessions={sessions} />
