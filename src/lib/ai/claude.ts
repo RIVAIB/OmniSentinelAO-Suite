@@ -26,7 +26,7 @@ export async function callAgent(
     userMessage: string
 ): Promise<string> {
     const response = await anthropic.messages.create({
-        model: config.model ?? 'claude-3-5-sonnet-20241022',
+        model: config.model ?? 'claude-sonnet-4-6',
         max_tokens: config.maxTokens ?? 1024,
         temperature: config.temperature ?? 0.7,
         system: config.systemPrompt,

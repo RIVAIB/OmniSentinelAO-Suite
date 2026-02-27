@@ -42,7 +42,7 @@ export async function routeMessage(
         const raw = await callAgent(
             {
                 systemPrompt: ROUTING_PROMPT,
-                model: 'claude-3-5-sonnet-20241022',
+                model: 'claude-sonnet-4-6',
                 temperature: 0.2,   // low temp → deterministic routing
                 maxTokens: 256,
             },

@@ -18,7 +18,7 @@ export const ConversationStatusEnum = z.enum(['active', 'closed', 'escalated']);
 
 export const AgentConfigSchema = z.object({
   systemPrompt: z.string().optional(),
-  model: z.string().default('claude-3-5-sonnet'),
+  model: z.string().default('claude-sonnet-4-6'),
   temperature: z.number().min(0).max(2).default(0.7),
   maxTokens: z.number().positive().default(4096),
   tools: z.array(z.string()).default([]),
@@ -30,7 +30,7 @@ export const CreateAgentSchema = z.object({
   type: AgentTypeEnum,
   status: AgentStatusEnum.default('inactive'),
   config: AgentConfigSchema.default(() => ({
-    model: 'claude-3-5-sonnet',
+    model: 'claude-sonnet-4-6',
     temperature: 0.7,
     maxTokens: 4096,
     tools: [],
