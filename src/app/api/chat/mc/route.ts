@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
 
         // ── 1. Find or create conversation ──────────────────────────────────
         if (!conversationId) {
-            conversationId = await createConversation(channel, contactId, contactName);
+            conversationId = await createConversation(channel, contactId);
         } else {
             // Verify conversation exists
             const supabase = await createClient();
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
                 .single();
             if (error) {
                 // Conversation not found — create a new one
-                conversationId = await createConversation(channel, contactId, contactName);
+                conversationId = await createConversation(channel, contactId);
             }
         }
 

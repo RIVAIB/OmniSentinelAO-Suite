@@ -53,8 +53,7 @@ export async function getAgentByName(name: string): Promise<AgentRow | null> {
  */
 export async function createConversation(
     channel: string,
-    contactId: string,
-    contactName?: string
+    contactId: string
 ): Promise<string> {
     const supabase = await createClient();
     const { data, error } = await supabase
@@ -64,7 +63,6 @@ export async function createConversation(
             contact_id: contactId,
             status: 'active',
             messages: [],
-            ...(contactName ? { metadata: { contactName } } : {}),
         } as never)
         .select('id')
         .single();

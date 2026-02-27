@@ -34,7 +34,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     let convId = conversationId;
     if (!convId) {
-      convId = await createConversation('webchat', 'dashboard-test', 'Test User');
+      convId = await createConversation('webchat', 'dashboard-test');
     }
 
     const result = await processMessage(
