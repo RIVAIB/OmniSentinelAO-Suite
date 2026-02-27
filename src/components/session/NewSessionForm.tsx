@@ -22,6 +22,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { PlusCircle } from 'lucide-react';
+import { toast } from 'sonner';
 
 export function NewSessionForm() {
     const [open, setOpen] = useState(false);
@@ -36,28 +37,36 @@ export function NewSessionForm() {
         if (!title) return;
         setLoading(true);
 
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                toast.error('Debes iniciar sesión para crear una sesión');
+                return;
+            }
 
-        const { data, error } = await supabase
-            .from('sessions')
-            .insert({
-                user_id: user.id,
-                title,
-                project_type: projectType,
-                project_context: context,
-                status: 'active',
-            })
-            .select()
-            .single();
+            const { data, error } = await supabase
+                .from('sessions')
+                .insert({
+                    user_id: user.id,
+                    title,
+                    project_type: projectType,
+                    project_context: context,
+                    status: 'active',
+                })
+                .select()
+                .single();
 
-        if (error) {
-            console.error('Error creating session:', error);
-        } else {
-            setOpen(false);
-            router.push(`/room/${data.id}`);
+            if (error) {
+                toast.error('Error al crear sesión: ' + error.message);
+            } else {
+                setOpen(false);
+                router.push(`/room/${data.id}`);
+            }
+        } catch (err: any) {
+            toast.error('Error inesperado: ' + err.message);
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     return (
