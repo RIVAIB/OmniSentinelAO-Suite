@@ -202,14 +202,14 @@ export default function AgentCard({ agent, onToggle }: AgentCardProps) {
                 {/* Probar — opens test chat modal */}
                 <button
                     onClick={() => setChatOpen(true)}
-                    disabled={!agent.id}
+                    disabled={!agent.id || agent.status !== 'active'}
                     className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-medium transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
                     style={{
                         background: `${accent}12`,
                         color: accent,
                         border: `1px solid ${accent}22`,
                     }}
-                    title="Probar agente"
+                    title={agent.status !== 'active' ? 'Activa el agente para probarlo' : 'Probar agente'}
                 >
                     <MessageSquare size={13} />
                     <span>Probar</span>

@@ -153,7 +153,9 @@ export default function AgentsPage() {
         });
         if (!res.ok) {
             const json = await res.json().catch(() => ({}));
-            throw new Error(json.message ?? `Error ${res.status}`);
+            const msg = json.error?.message ?? json.message ?? `Error ${res.status}`;
+            setError(msg);
+            throw new Error(msg);
         }
         // Optimistic update: flip status locally, then re-fetch
         setAgents((prev) =>
