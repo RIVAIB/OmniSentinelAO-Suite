@@ -18,12 +18,12 @@ export function AppLayoutWrapper({ children }: { children: React.ReactNode }) {
     }
 
     return (
-        <>
+        <div className="flex min-h-screen">
             <Sidebar />
-            <main className="flex-1 relative overflow-hidden flex flex-col min-h-screen">
+            <main className="flex-1 min-w-0 overflow-y-auto">
                 {children}
             </main>
             <Toaster position="top-center" />
-        </>
+        </div>
     );
 }

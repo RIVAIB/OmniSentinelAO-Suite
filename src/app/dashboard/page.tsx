@@ -254,10 +254,10 @@ export default function DashboardPage() {
 
     return (
         // Outer wrapper: main content + LiveFeed panel side by side
-        <div className="flex h-full min-h-screen overflow-hidden">
+        <div className="flex h-full">
 
             {/* ─── Main content area ─────────────────────────────────────────── */}
-            <div className="flex-1 overflow-y-auto p-6 lg:p-8 flex flex-col gap-8">
+            <div className="flex-1 p-6 lg:p-8 flex flex-col gap-8">
 
                 {/* Ambient glows */}
                 <div

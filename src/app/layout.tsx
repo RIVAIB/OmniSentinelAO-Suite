@@ -3,7 +3,6 @@ export const dynamic = 'force-dynamic';
 import type { Metadata } from "next";
 import { Inter, Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
-import { Toaster } from "@/components/ui/sonner";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -40,10 +39,22 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" className={`dark ${inter.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable}`}>
-      <body className={`${inter.className} min-h-screen bg-background text-foreground antialiased`}>
+    <html
+      lang="es"
+      className={`dark ${inter.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable}`}
+      suppressHydrationWarning
+    >
+      <body className="antialiased min-h-dvh bg-background text-foreground overflow-x-hidden">
+        {/* Ambient background gradient */}
+        <div
+          className="fixed inset-0 pointer-events-none"
+          aria-hidden="true"
+          style={{
+            background:
+              "radial-gradient(ellipse at 20% 0%, rgba(34,211,238,0.06) 0%, transparent 50%), radial-gradient(ellipse at 80% 0%, rgba(139,92,246,0.06) 0%, transparent 50%)",
+          }}
+        />
         <AppLayoutWrapper>{children}</AppLayoutWrapper>
-        <Toaster />
       </body>
     </html>
   );

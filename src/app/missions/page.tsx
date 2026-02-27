@@ -69,7 +69,7 @@ export default function MissionsPage() {
     if (loading) return <PageLoader rows={6} />;
 
     return (
-        <div className="p-6 flex flex-col gap-6 min-h-screen">
+        <div className="p-6 flex flex-col gap-6">
             {/* Ambient */}
             <div
                 className="fixed inset-0 pointer-events-none"
