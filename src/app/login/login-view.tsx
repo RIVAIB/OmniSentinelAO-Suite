@@ -1,15 +1,25 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
 
-export function LoginView() {
+function LoginForm() {
     const [email, setEmail] = useState('')
     const [loading, setLoading] = useState(false)
+    const searchParams = useSearchParams()
     const supabase = createClient()
+
+    // Mostrar error de auth si viene del callback
+    useEffect(() => {
+        const error = searchParams.get('error')
+        if (error) {
+            toast.error(decodeURIComponent(error))
+        }
+    }, [searchParams])
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -48,5 +58,13 @@ export function LoginView() {
                 {loading ? 'Enviando...' : 'Enviar Enlace Mágico'}
             </Button>
         </form>
+    )
+}
+
+export function LoginView() {
+    return (
+        <Suspense>
+            <LoginForm />
+        </Suspense>
     )
 }
