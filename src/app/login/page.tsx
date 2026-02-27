@@ -6,10 +6,10 @@ export default function LoginPage() {
             <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
                 <div className="flex flex-col space-y-2 text-center">
                     <h1 className="text-2xl font-bold tracking-tight">
-                        War Room Login
+                        OmniSentinel Login
                     </h1>
                     <p className="text-sm text-muted-foreground">
-                        Introduce tu email para recibir un enlace de acceso
+                        Introduce tu email para acceder al Command Center
                     </p>
                 </div>
                 <LoginView />
