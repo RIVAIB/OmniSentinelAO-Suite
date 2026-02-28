@@ -84,7 +84,7 @@ export default function WarRoomPage() {
                 {isAuthed === false ? (
                     <Link
                         href="/login?next=/room"
-                        onClick={() => localStorage.setItem('postAuthRedirect', '/room')}
+                        onClick={() => { document.cookie = 'postAuthRedirect=%2Froom; path=/; max-age=3600; SameSite=Lax'; }}
                     >
                         <Button className="bg-purple-600 hover:bg-purple-700 gap-2">
                             <LogIn size={16} />
@@ -110,7 +110,7 @@ export default function WarRoomPage() {
                         Para crear nuevas sesiones necesitas{' '}
                         <Link
                             href="/login?next=/room"
-                            onClick={() => localStorage.setItem('postAuthRedirect', '/room')}
+                            onClick={() => { document.cookie = 'postAuthRedirect=%2Froom; path=/; max-age=3600; SameSite=Lax'; }}
                             className="font-semibold underline"
                             style={{ color: 'var(--accent-violet)' }}
                         >

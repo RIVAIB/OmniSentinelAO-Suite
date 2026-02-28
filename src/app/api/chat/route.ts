@@ -43,7 +43,11 @@ export async function POST(req: NextRequest) {
 
     // 4. Sliding Window: Limit history to last 30 messages
     const MAX_HISTORY = 30;
-    const recentHistory = history?.slice(-MAX_HISTORY) || [];
+    const rawHistory = history?.slice(-MAX_HISTORY) || [];
+    // Gemini requires the first message in history to be 'user' role.
+    // If the window cuts in the middle of a turn, trim leading agent messages.
+    const firstUserIdx = rawHistory.findIndex(m => m.role === 'richard');
+    const recentHistory = firstUserIdx > 0 ? rawHistory.slice(firstUserIdx) : rawHistory;
 
     const { mode, targetAgent } = parseDirective(message);
     const encoder = new TextEncoder();
@@ -130,7 +134,7 @@ export async function POST(req: NextRequest) {
                             role: targetAgent,
                             content: fullResponse,
                             metadata: {
-                                model: targetAgent === 'claude' ? 'claude-sonnet-4-5' : 'gemini-2.5-flash',
+                                model: targetAgent === 'claude' ? 'claude-sonnet-4-6' : 'gemini-2.5-flash',
                                 latency_ms: Date.now() - startTime
                             }
                         })
@@ -202,7 +206,7 @@ export async function POST(req: NextRequest) {
                             role: firstAgent,
                             content: firstResponse,
                             metadata: {
-                                model: firstAgent === 'claude' ? 'claude-sonnet-4-5' : 'gemini-2.5-flash',
+                                model: firstAgent === 'claude' ? 'claude-sonnet-4-6' : 'gemini-2.5-flash',
                                 latency_ms: Date.now() - startTime1
                             }
                         })
@@ -276,7 +280,7 @@ export async function POST(req: NextRequest) {
                             cross_check_status: status,
                             cross_check_detail: detail,
                             metadata: {
-                                model: secondAgent === 'claude' ? 'claude-sonnet-4-5' : 'gemini-2.5-flash',
+                                model: secondAgent === 'claude' ? 'claude-sonnet-4-6' : 'gemini-2.5-flash',
                                 latency_ms: Date.now() - startTime2
                             }
                         })

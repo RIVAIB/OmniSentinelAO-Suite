@@ -15,8 +15,16 @@ export default function AuthRedirectPage() {
     const router = useRouter();
 
     useEffect(() => {
-        const dest = localStorage.getItem('postAuthRedirect') ?? '/dashboard';
+        // Read from localStorage (same-browser desktop) or cookie (mobile webviews)
+        const lsDest = localStorage.getItem('postAuthRedirect');
+        const cookieMatch = document.cookie.match(/postAuthRedirect=([^;]+)/);
+        const cookieDest = cookieMatch ? decodeURIComponent(cookieMatch[1]) : null;
+        const dest = lsDest ?? cookieDest ?? '/dashboard';
+
+        // Clean up both storage mechanisms
         localStorage.removeItem('postAuthRedirect');
+        document.cookie = 'postAuthRedirect=; path=/; max-age=0';
+
         router.replace(dest);
     }, [router]);
 
