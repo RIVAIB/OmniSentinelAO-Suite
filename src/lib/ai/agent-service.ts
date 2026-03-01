@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { callAgent, type ConversationMessage } from '@/lib/ai/claude';
 import {
     getConversation,
@@ -29,7 +29,7 @@ export interface AgentRow {
  * Fetch an agent row by its `name` column (case-insensitive).
  */
 export async function getAgentByName(name: string): Promise<AgentRow | null> {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     const { data, error } = await supabase
         .from('agents')
         .select('*')
@@ -55,7 +55,7 @@ export async function createConversation(
     channel: string,
     contactId: string
 ): Promise<string> {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     const { data, error } = await supabase
         .from('conversations')
         .insert({

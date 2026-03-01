@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import type { ConversationMessage } from '@/lib/ai/claude';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -27,7 +27,7 @@ export interface Conversation {
  * Fetch a single conversation with parsed messages.
  */
 export async function getConversation(id: string): Promise<Conversation | null> {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     const { data, error } = await supabase
         .from('conversations')
         .select('*')
@@ -53,7 +53,7 @@ export async function addMessage(
     content: string,
     agentName?: string
 ): Promise<void> {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     // Fetch current messages
     const { data } = await supabase
@@ -102,7 +102,7 @@ export async function getConversationHistory(
  * Update the assigned agent on a conversation (by agent name, resolved to ID separately).
  */
 export async function assignAgent(conversationId: string, agentId: string): Promise<void> {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     await supabase
         .from('conversations')
         .update({ agent_id: agentId, updated_at: new Date().toISOString() } as never)
