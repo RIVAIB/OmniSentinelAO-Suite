@@ -6,35 +6,18 @@ import { transcribeVoice } from './voice';
 import { detectAgentMention } from './agent-parser';
 import { processMessage, createConversation, getAgentByName } from '@/lib/ai/agent-service';
 import { createClient } from '@/lib/supabase/server';
+import { callClaud } from './claud';
+import { callGem } from './gem';
+import { downloadTelegramFile } from './media';
 import type { TelegramUpdate, BotIdentity } from './types';
-
-// ── Gemini call ───────────────────────────────────────────────────────────────
-
-async function callGemini(text: string): Promise<string> {
-    const { GoogleGenerativeAI } = await import('@google/generative-ai');
-    const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY!);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-    const result = await model.generateContent(text);
-    return result.response.text();
-}
-
-// ── Claude general (without OmniSentinel agent routing) ───────────────────────
-
-async function callClaude(text: string): Promise<string> {
-    const Anthropic = (await import('@anthropic-ai/sdk')).default;
-    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-    const response = await client.messages.create({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1024,
-        messages: [{ role: 'user', content: text }],
-    });
-    const block = response.content[0];
-    return block.type === 'text' ? block.text : '';
-}
 
 // ── CLAWDIO orchestrator report ───────────────────────────────────────────────
 
-async function clawdioReport(userMessage: string, contactId: string): Promise<string> {
+async function clawdioReport(
+    userMessage: string,
+    contactId: string,
+    imageBase64?: string
+): Promise<string> {
     const supabase = await createClient();
 
     const { data: missions } = await supabase
@@ -52,7 +35,10 @@ async function clawdioReport(userMessage: string, contactId: string): Promise<st
         : 'No hay misiones activas.';
 
     const convId = await createConversation('telegram', contactId);
-    const context = `Resumen de misiones activas:\n${missionSummary}\n\nPregunta del usuario: ${userMessage}`;
+    let context = `Resumen de misiones activas:\n${missionSummary}\n\nPregunta del usuario: ${userMessage}`;
+    if (imageBase64) {
+        context += '\n[El usuario compartió una imagen.]';
+    }
     const { response } = await processMessage('CLAWDIO', convId, context, contactId);
     return response;
 }
@@ -70,18 +56,40 @@ export async function processUpdate(
     const chatId = msg.chat.id;
     const contactId = String(msg.from?.id ?? 'anonymous');
 
-    // 1. Get message text (transcribe voice if needed)
+    // 1. Extract text and media from the message
     let text: string;
+    let imageBase64: string | undefined;
+    let mediaBase64: string | undefined;
+    let mediaMimeType: string | undefined;
+
     try {
         if (msg.voice) {
+            // Voice → transcribe
             text = await transcribeVoice(token, msg.voice.file_id);
+        } else if (msg.video) {
+            // Video message — only download for GEM; other bots get a redirect
+            text = msg.caption ?? msg.text ?? '';
+            if (bot.kind === 'gemini') {
+                const media = await downloadTelegramFile(token, msg.video.file_id);
+                mediaBase64 = media.base64;
+                mediaMimeType = media.mimeType;
+            }
+            // For non-GEM bots we do not download; routing section handles the redirect
+        } else if (msg.photo) {
+            // Photo — download the largest size (last element in array)
+            const largest = msg.photo[msg.photo.length - 1];
+            const media = await downloadTelegramFile(token, largest.file_id);
+            imageBase64 = media.base64;
+            // Text is the caption, or a default prompt when none is provided
+            text = msg.caption ?? msg.text ?? 'Analiza esta imagen.';
         } else if (msg.text) {
             text = msg.text;
         } else {
+            // Unsupported message type — silently ignore
             return;
         }
     } catch (err) {
-        console.error('[Processor] Failed to get message text:', err);
+        console.error('[Processor] Failed to get message text/media:', err);
         await sendMessage(token, chatId, '⚠️ No pude procesar el mensaje. Intenta de nuevo.');
         return;
     }
@@ -90,16 +98,28 @@ export async function processUpdate(
     let reply: string;
     try {
         if (bot.kind === 'claude') {
-            reply = await callClaude(text);
+            reply = await callClaud(text, imageBase64);
 
         } else if (bot.kind === 'gemini') {
-            reply = await callGemini(text);
+            if (mediaBase64) {
+                // Video (or other media) — pass explicit mime type
+                reply = await callGem(text, mediaBase64, mediaMimeType);
+            } else {
+                // Image or plain text — imageBase64 may be undefined
+                reply = await callGem(text, imageBase64);
+            }
 
         } else {
+            // ERP agent bots
             const agentName = bot.agentName;
 
-            if (agentName === 'CLAWDIO') {
-                reply = await clawdioReport(text, contactId);
+            if (msg.video && bot.kind === 'agent') {
+                // Videos are not processed by ERP agents — redirect to GEM
+                reply = '🎥 No proceso video. Para análisis de video, usa @Gem_ERP_Bot.';
+
+            } else if (agentName === 'CLAWDIO') {
+                reply = await clawdioReport(text, contactId, imageBase64);
+
             } else {
                 const mentionedAgent = detectAgentMention(text);
                 const targetAgent = mentionedAgent ?? agentName;
@@ -108,7 +128,13 @@ export async function processUpdate(
                 const finalAgent = agent ? targetAgent : agentName;
 
                 const convId = await createConversation('telegram', contactId);
-                const result = await processMessage(finalAgent, convId, text, contactId);
+
+                // processMessage does not support vision — append a note if an image was shared
+                const messageWithContext = imageBase64
+                    ? `${text}\n[El usuario adjuntó una imagen]`
+                    : text;
+
+                const result = await processMessage(finalAgent, convId, messageWithContext, contactId);
                 reply = result.response;
             }
         }
