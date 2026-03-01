@@ -54,7 +54,7 @@ export async function processUpdate(
     if (!msg) return;
 
     const chatId = msg.chat.id;
-    const contactId = String(msg.from?.id ?? 'anonymous');
+    const contactId = msg.from?.id ? String(msg.from.id) : `channel-${chatId}`;
 
     // 1. Extract text and media from the message
     let text: string;
@@ -77,6 +77,7 @@ export async function processUpdate(
             // For non-GEM bots we do not download; routing section handles the redirect
         } else if (msg.photo) {
             // Photo — download the largest size (last element in array)
+            if (!msg.photo || msg.photo.length === 0) return;
             const largest = msg.photo[msg.photo.length - 1];
             const media = await downloadTelegramFile(token, largest.file_id);
             imageBase64 = media.base64;
@@ -90,7 +91,11 @@ export async function processUpdate(
         }
     } catch (err) {
         console.error('[Processor] Failed to get message text/media:', err);
-        await sendMessage(token, chatId, '⚠️ No pude procesar el mensaje. Intenta de nuevo.');
+        try {
+            await sendMessage(token, chatId, '⚠️ No pude procesar el mensaje. Intenta de nuevo.');
+        } catch (err) {
+            console.error('[Processor] sendMessage failed:', err);
+        }
         return;
     }
 
@@ -144,5 +149,9 @@ export async function processUpdate(
     }
 
     // 3. Send reply
-    await sendMessage(token, chatId, reply);
+    try {
+        await sendMessage(token, chatId, reply);
+    } catch (err) {
+        console.error('[Processor] sendMessage failed:', err);
+    }
 }

@@ -32,9 +32,9 @@ export async function downloadTelegramFile(
     const mimeMap: Record<string, string> = {
         jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
         gif: 'image/gif', webp: 'image/webp',
-        mp4: 'video/mp4', mov: 'video/mp4', avi: 'video/mp4',
+        mp4: 'video/mp4', mov: 'video/quicktime', avi: 'video/x-msvideo',
     };
-    const mimeType = mimeMap[ext] ?? 'image/jpeg';
+    const mimeType = mimeMap[ext] ?? 'application/octet-stream';
 
     return { base64, mimeType };
 }
