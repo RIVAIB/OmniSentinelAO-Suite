@@ -53,7 +53,7 @@ async function clawdioReport(userMessage: string, contactId: string): Promise<st
 
     const convId = await createConversation('telegram', contactId);
     const context = `Resumen de misiones activas:\n${missionSummary}\n\nPregunta del usuario: ${userMessage}`;
-    const { response } = await processMessage('CLAWDIO', convId, context);
+    const { response } = await processMessage('CLAWDIO', convId, context, contactId);
     return response;
 }
 
@@ -108,7 +108,7 @@ export async function processUpdate(
                 const finalAgent = agent ? targetAgent : agentName;
 
                 const convId = await createConversation('telegram', contactId);
-                const result = await processMessage(finalAgent, convId, text);
+                const result = await processMessage(finalAgent, convId, text, contactId);
                 reply = result.response;
             }
         }
