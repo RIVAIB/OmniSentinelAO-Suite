@@ -6,6 +6,7 @@ import {
     getConversationHistory,
     assignAgent,
 } from '@/lib/db/conversations';
+import { retrieve, retrieveShared, memorize } from '@/lib/memory/mem0';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -91,7 +92,8 @@ export { addMessage as addMessageToConversation };
 export async function processMessage(
     agentName: string,
     conversationId: string,
-    userMessage: string
+    userMessage: string,
+    contactId?: string          // Optional: Telegram user ID or session ID
 ): Promise<{ response: string; agentId: string; agentName: string }> {
     // 1. Load agent
     const agent = await getAgentByName(agentName);
@@ -110,9 +112,25 @@ export async function processMessage(
     await addMessage(conversationId, 'user', userMessage);
 
     // 5. Build system prompt
-    const systemPrompt =
+    const baseSystemPrompt =
         agent.config.systemPrompt ??
         `You are ${agent.name}, a helpful AI assistant for RIVAIB Health Clinic. Be professional and empathetic.`;
+
+    // 5b. Retrieve shared memory context (best-effort, non-blocking on failure)
+    const memUserId = contactId ?? conversationId;
+    const [privateCtx, sharedCtx] = await Promise.all([
+        retrieve(agentName, userMessage, memUserId),
+        retrieveShared(userMessage, memUserId),
+    ]);
+
+    const memBlock = [
+        privateCtx  ? `## Tu memoria privada (${agentName}):\n${privateCtx}`  : '',
+        sharedCtx   ? `## Contexto compartido del equipo:\n${sharedCtx}`      : '',
+    ].filter(Boolean).join('\n\n');
+
+    const systemPrompt = memBlock
+        ? `${baseSystemPrompt}\n\n${memBlock}`
+        : baseSystemPrompt;
 
     // 6. Call Claude
     const response = await callAgent(
@@ -128,6 +146,11 @@ export async function processMessage(
 
     // 7. Save agent response
     await addMessage(conversationId, 'assistant', response, agent.name);
+
+    // 7b. Memorize the exchange (fire-and-forget — must not block response)
+    memorize(agentName, userMessage, response, memUserId).catch(
+        (err) => console.error('[Memory] memorize error:', err)
+    );
 
     return { response, agentId: agent.id, agentName: agent.name };
 }
