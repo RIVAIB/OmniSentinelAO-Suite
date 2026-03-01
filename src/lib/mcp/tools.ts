@@ -75,6 +75,43 @@ export const MCP_TOOLS = [
         }
     },
     {
+        name: "github_list_repos",
+        description: "Lista los repositorios de un usuario u organización de GitHub.",
+        input_schema: {
+            type: "object" as const,
+            properties: {
+                username: { type: "string", description: "Usuario u organización de GitHub." }
+            },
+            required: ["username"]
+        }
+    },
+    {
+        name: "github_list_commits",
+        description: "Lista los commits recientes de un repositorio de GitHub.",
+        input_schema: {
+            type: "object" as const,
+            properties: {
+                owner: { type: "string", description: "Propietario del repo." },
+                repo: { type: "string", description: "Nombre del repo." },
+                limit: { type: "number", description: "Número de commits a retornar (default 10)." }
+            },
+            required: ["owner", "repo"]
+        }
+    },
+    {
+        name: "github_list_prs",
+        description: "Lista los pull requests de un repositorio de GitHub.",
+        input_schema: {
+            type: "object" as const,
+            properties: {
+                owner: { type: "string", description: "Propietario del repo." },
+                repo: { type: "string", description: "Nombre del repo." },
+                state: { type: "string", enum: ["open", "closed", "all"], description: "Estado de los PRs (default 'open')." }
+            },
+            required: ["owner", "repo"]
+        }
+    },
+    {
         name: "vercel_deployment_status",
         description: "Verifica el estado del último despliegue en Vercel.",
         input_schema: {
