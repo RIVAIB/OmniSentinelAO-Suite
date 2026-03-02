@@ -59,6 +59,7 @@ export async function processUpdate(
     // 1. Extract text and media from the message
     let text: string;
     let imageBase64: string | undefined;
+    let imageMimeType: string | undefined;
     let mediaBase64: string | undefined;
     let mediaMimeType: string | undefined;
 
@@ -77,10 +78,11 @@ export async function processUpdate(
             // For non-GEM bots we do not download; routing section handles the redirect
         } else if (msg.photo) {
             // Photo — download the largest size (last element in array)
-            if (!msg.photo || msg.photo.length === 0) return;
+            if (msg.photo.length === 0) return;
             const largest = msg.photo[msg.photo.length - 1];
             const media = await downloadTelegramFile(token, largest.file_id);
             imageBase64 = media.base64;
+            imageMimeType = media.mimeType;
             // Text is the caption, or a default prompt when none is provided
             text = msg.caption ?? msg.text ?? 'Analiza esta imagen.';
         } else if (msg.text) {
@@ -103,7 +105,7 @@ export async function processUpdate(
     let reply: string;
     try {
         if (bot.kind === 'claude') {
-            reply = await callClaud(text, imageBase64);
+            reply = await callClaud(text, imageBase64, imageMimeType);
 
         } else if (bot.kind === 'gemini') {
             if (mediaBase64) {
@@ -111,7 +113,7 @@ export async function processUpdate(
                 reply = await callGem(text, mediaBase64, mediaMimeType);
             } else {
                 // Image or plain text — imageBase64 may be undefined
-                reply = await callGem(text, imageBase64);
+                reply = await callGem(text, imageBase64, imageMimeType);
             }
 
         } else {

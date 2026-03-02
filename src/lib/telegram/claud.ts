@@ -158,17 +158,23 @@ async function runGitHubTool(name: string, args: Record<string, unknown>): Promi
     }
 }
 
+type AnthropicImageMime = 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
+
 // Build the user content block — text + optional image
 function buildUserContent(
     text: string,
     imageBase64?: string,
-    imageMimeType = 'image/jpeg'
+    imageMimeType: string = 'image/jpeg'
 ): Anthropic.MessageParam['content'] {
     if (!imageBase64) return text;
+    const validMimes: AnthropicImageMime[] = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    const mimeType: AnthropicImageMime = validMimes.includes(imageMimeType as AnthropicImageMime)
+        ? (imageMimeType as AnthropicImageMime)
+        : 'image/jpeg';
     return [
         {
             type: 'image',
-            source: { type: 'base64', media_type: imageMimeType as 'image/jpeg', data: imageBase64 },
+            source: { type: 'base64', media_type: mimeType, data: imageBase64 },
         },
         { type: 'text', text: text || 'Analiza esta imagen.' },
     ];
@@ -176,12 +182,13 @@ function buildUserContent(
 
 /**
  * CLAUD agent handler — tool-use loop with GitHub + web search + vision.
- * @param text        User message text
- * @param imageBase64 Optional base64-encoded image from Telegram
+ * @param text          User message text
+ * @param imageBase64   Optional base64-encoded image from Telegram
+ * @param imageMimeType MIME type of the image (default: image/jpeg)
  */
-export async function callClaud(text: string, imageBase64?: string): Promise<string> {
+export async function callClaud(text: string, imageBase64?: string, imageMimeType?: string): Promise<string> {
     const messages: Anthropic.MessageParam[] = [
-        { role: 'user', content: buildUserContent(text, imageBase64) },
+        { role: 'user', content: buildUserContent(text, imageBase64, imageMimeType) },
     ];
 
     // Tool-use loop — max 5 iterations to prevent infinite loops
