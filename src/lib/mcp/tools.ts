@@ -1,4 +1,4 @@
-import { SchemaType } from "@google/generative-ai";
+import { SchemaType, type Schema } from "@google/generative-ai";
 
 export const MCP_TOOLS = [
     {
@@ -124,6 +124,20 @@ export const MCP_TOOLS = [
     }
 ];
 
+interface ToolPropertySchema {
+    type: string;
+    description: string;
+    enum?: string[];
+}
+
+const schemaTypeMap: Record<string, SchemaType> = {
+    string:  SchemaType.STRING,
+    number:  SchemaType.NUMBER,
+    boolean: SchemaType.BOOLEAN,
+    object:  SchemaType.OBJECT,
+    array:   SchemaType.ARRAY,
+};
+
 // Helper to convert to Gemini function declarations
 export function getGeminiTools() {
     return MCP_TOOLS.map(tool => ({
@@ -132,16 +146,19 @@ export function getGeminiTools() {
         parameters: {
             type: SchemaType.OBJECT,
             properties: Object.fromEntries(
-                Object.entries(tool.input_schema.properties).map(([key, value]) => [
-                    key,
-                    {
-                        type: SchemaType.STRING,
-                        description: value.description,
-                        ...(value.enum ? { enum: value.enum, format: "enum" } : {})
-                    }
-                ])
-            ) as any,
-            required: tool.input_schema.required
-        }
+                Object.entries(tool.input_schema.properties).map(([key, value]) => {
+                    const prop = value as ToolPropertySchema;
+                    return [
+                        key,
+                        {
+                            type: schemaTypeMap[prop.type] ?? SchemaType.STRING,
+                            description: prop.description,
+                            ...(prop.enum ? { enum: prop.enum, format: 'enum' } : {}),
+                        } as Schema,
+                    ];
+                })
+            ) as Record<string, Schema>,
+            required: tool.input_schema.required,
+        },
     }));
 }

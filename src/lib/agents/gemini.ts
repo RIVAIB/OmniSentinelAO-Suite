@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getGeminiTools } from '../mcp/tools';
+import { GEMINI_MODEL } from '@/lib/ai/models';
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY!);
 
@@ -10,7 +11,7 @@ export async function streamGeminiResponse(
     onToolCall?: (toolName: string, args: any, toolId?: string) => void
 ) {
     const model = genAI.getGenerativeModel({
-        model: 'gemini-2.5-flash',
+        model: GEMINI_MODEL,
         systemInstruction: systemPrompt,
         tools: [{
             functionDeclarations: getGeminiTools()

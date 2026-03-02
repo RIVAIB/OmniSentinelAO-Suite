@@ -2,7 +2,7 @@
 // Thin wrapper over mem0 REST API.
 // mem0 server runs locally via docker-compose on port 8000.
 
-const MEM0_BASE = process.env.MEMU_BASE_URL ?? 'http://localhost:8000';
+const MEM0_BASE = process.env.MEM0_BASE_URL ?? process.env.MEMU_BASE_URL ?? 'http://localhost:8000';
 
 export interface MemorySearchResult {
     id: string;

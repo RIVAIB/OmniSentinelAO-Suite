@@ -3,6 +3,7 @@
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import type { Part } from '@google/generative-ai';
+import { GEMINI_MODEL } from '@/lib/ai/models';
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY!);
 
@@ -30,7 +31,7 @@ export async function callGem(
     mediaMimeType = 'image/jpeg'
 ): Promise<string> {
     const model = genAI.getGenerativeModel({
-        model: 'gemini-2.5-flash',
+        model: GEMINI_MODEL,
         systemInstruction: GEM_SYSTEM,
     });
 

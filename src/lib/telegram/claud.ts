@@ -4,6 +4,14 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import type { WebSearchTool20250305 } from '@anthropic-ai/sdk/resources/messages/messages';
+import { CLAUDE_MODEL } from '@/lib/ai/models';
+import {
+    githubListRepos,
+    githubReadFile,
+    githubListFiles,
+    githubListCommits,
+    githubListPRs,
+} from '@/lib/github/client';
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -95,64 +103,19 @@ const WEB_SEARCH_TOOL: WebSearchTool20250305 = {
     max_uses: 3,
 };
 
-// GitHub API executor — standalone (no Supabase logging needed for Telegram flow)
+// GitHub tool dispatcher — delegates to shared client (no Supabase logging for Telegram flow)
 async function runGitHubTool(name: string, args: Record<string, unknown>): Promise<unknown> {
-    const headers = { Authorization: `token ${process.env.GITHUB_TOKEN}` };
-
     switch (name) {
-        case 'github_list_repos': {
-            const res = await fetch(
-                `https://api.github.com/users/${args.username}/repos?type=all&sort=updated&per_page=50`,
-                { headers }
-            );
-            const repos = await res.json() as Array<{ name: string; description: string; updated_at: string; private: boolean }>;
-            return repos.map(r => ({ name: r.name, description: r.description, updated_at: r.updated_at, private: r.private }));
-        }
-        case 'github_read_file': {
-            const res = await fetch(
-                `https://api.github.com/repos/${args.owner}/${args.repo}/contents/${args.path}`,
-                { headers }
-            );
-            const data = await res.json() as { content?: string; message?: string };
-            if (data.message) return { error: data.message };
-            return { content: data.content ? Buffer.from(data.content, 'base64').toString() : '' };
-        }
-        case 'github_list_files': {
-            const res = await fetch(
-                `https://api.github.com/repos/${args.owner}/${args.repo}/contents/${args.path}`,
-                { headers }
-            );
-            return res.json();
-        }
-        case 'github_list_commits': {
-            const limit = (args.limit as number) ?? 10;
-            const res = await fetch(
-                `https://api.github.com/repos/${args.owner}/${args.repo}/commits?per_page=${limit}`,
-                { headers }
-            );
-            const commits = await res.json() as Array<{ sha: string; commit: { message: string; author: { name: string; date: string } } }>;
-            return commits.map(c => ({
-                sha: c.sha.slice(0, 7),
-                message: c.commit.message.split('\n')[0],
-                author: c.commit.author.name,
-                date: c.commit.author.date,
-            }));
-        }
-        case 'github_list_prs': {
-            const state = (args.state as string) ?? 'open';
-            const res = await fetch(
-                `https://api.github.com/repos/${args.owner}/${args.repo}/pulls?state=${state}&per_page=20`,
-                { headers }
-            );
-            const prs = await res.json() as Array<{ number: number; title: string; state: string; user: { login: string }; created_at: string }>;
-            return prs.map(pr => ({
-                number: pr.number,
-                title: pr.title,
-                state: pr.state,
-                author: pr.user.login,
-                created_at: pr.created_at,
-            }));
-        }
+        case 'github_list_repos':
+            return githubListRepos(args.username as string);
+        case 'github_read_file':
+            return githubReadFile(args.owner as string, args.repo as string, args.path as string);
+        case 'github_list_files':
+            return githubListFiles(args.owner as string, args.repo as string, args.path as string);
+        case 'github_list_commits':
+            return githubListCommits(args.owner as string, args.repo as string, args.limit as number | undefined);
+        case 'github_list_prs':
+            return githubListPRs(args.owner as string, args.repo as string, args.state as 'open' | 'closed' | 'all' | undefined);
         default:
             return { error: `Tool ${name} not implemented` };
     }
@@ -194,7 +157,7 @@ export async function callClaud(text: string, imageBase64?: string, imageMimeTyp
     // Tool-use loop — max 5 iterations to prevent infinite loops
     for (let i = 0; i < 5; i++) {
         const response = await client.messages.create({
-            model: 'claude-sonnet-4-6',
+            model: CLAUDE_MODEL,
             max_tokens: 2048,
             system: CLAUD_SYSTEM,
             tools: [WEB_SEARCH_TOOL, ...CLAUD_TOOLS],

@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { CLAUDE_MODEL } from '@/lib/ai/models';
 
 const anthropic = new Anthropic({
     apiKey: process.env.ANTHROPIC_API_KEY,
@@ -26,7 +27,7 @@ export async function callAgent(
     userMessage: string
 ): Promise<string> {
     const response = await anthropic.messages.create({
-        model: config.model ?? 'claude-sonnet-4-6',
+        model: config.model ?? CLAUDE_MODEL,
         max_tokens: config.maxTokens ?? 1024,
         temperature: config.temperature ?? 0.7,
         system: config.systemPrompt,

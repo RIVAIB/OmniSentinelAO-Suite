@@ -1,4 +1,5 @@
 import { callAgent, type ConversationMessage } from '@/lib/ai/claude';
+import { CLAUDE_MODEL } from '@/lib/ai/models';
 
 // ─── CLAWDIO Routing Prompt ───────────────────────────────────────────────────
 
@@ -42,7 +43,7 @@ export async function routeMessage(
         const raw = await callAgent(
             {
                 systemPrompt: ROUTING_PROMPT,
-                model: 'claude-sonnet-4-6',
+                model: CLAUDE_MODEL,
                 temperature: 0.2,   // low temp → deterministic routing
                 maxTokens: 256,
             },

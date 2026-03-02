@@ -1,4 +1,11 @@
 import { createClient } from '@/lib/supabase/server';
+import {
+    githubListRepos,
+    githubReadFile,
+    githubListFiles,
+    githubListCommits,
+    githubListPRs,
+} from '@/lib/github/client';
 
 export async function executeMCPTool(sessionId: string, toolName: string, args: any) {
     const supabase = await createClient();
@@ -43,73 +50,25 @@ export async function executeMCPTool(sessionId: string, toolName: string, args: 
                 };
                 break;
 
-            case 'github_read_file': {
-                const { owner, repo, path } = args;
-                const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`, {
-                    headers: { 'Authorization': `token ${process.env.GITHUB_TOKEN}` }
-                });
-                const data = await response.json();
-                result = { content: data.content ? Buffer.from(data.content, 'base64').toString() : data };
+            case 'github_read_file':
+                result = await githubReadFile(args.owner, args.repo, args.path);
                 break;
-            }
 
-            case 'github_list_files': {
-                const { owner, repo, path } = args;
-                const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`, {
-                    headers: { 'Authorization': `token ${process.env.GITHUB_TOKEN}` }
-                });
-                result = await response.json();
+            case 'github_list_files':
+                result = await githubListFiles(args.owner, args.repo, args.path);
                 break;
-            }
 
-            case 'github_list_repos': {
-                const { username } = args;
-                const response = await fetch(
-                    `https://api.github.com/users/${username}/repos?type=all&sort=updated&per_page=50`,
-                    { headers: { Authorization: `token ${process.env.GITHUB_TOKEN}` } }
-                );
-                const repos = await response.json() as Array<{ name: string; description: string; updated_at: string; private: boolean }>;
-                result = repos.map(r => ({
-                    name: r.name,
-                    description: r.description,
-                    updated_at: r.updated_at,
-                    private: r.private,
-                }));
+            case 'github_list_repos':
+                result = await githubListRepos(args.username);
                 break;
-            }
 
-            case 'github_list_commits': {
-                const { owner, repo, limit = 10 } = args;
-                const response = await fetch(
-                    `https://api.github.com/repos/${owner}/${repo}/commits?per_page=${limit}`,
-                    { headers: { Authorization: `token ${process.env.GITHUB_TOKEN}` } }
-                );
-                const commits = await response.json() as Array<{ sha: string; commit: { message: string; author: { name: string; date: string } } }>;
-                result = commits.map(c => ({
-                    sha: c.sha.slice(0, 7),
-                    message: c.commit.message.split('\n')[0],
-                    author: c.commit.author.name,
-                    date: c.commit.author.date,
-                }));
+            case 'github_list_commits':
+                result = await githubListCommits(args.owner, args.repo, args.limit);
                 break;
-            }
 
-            case 'github_list_prs': {
-                const { owner, repo, state = 'open' } = args;
-                const response = await fetch(
-                    `https://api.github.com/repos/${owner}/${repo}/pulls?state=${state}&per_page=20`,
-                    { headers: { Authorization: `token ${process.env.GITHUB_TOKEN}` } }
-                );
-                const prs = await response.json() as Array<{ number: number; title: string; state: string; user: { login: string }; created_at: string }>;
-                result = prs.map(pr => ({
-                    number: pr.number,
-                    title: pr.title,
-                    state: pr.state,
-                    author: pr.user.login,
-                    created_at: pr.created_at,
-                }));
+            case 'github_list_prs':
+                result = await githubListPRs(args.owner, args.repo, args.state);
                 break;
-            }
 
             case 'vercel_deployment_status': {
                 const { projectId } = args;
