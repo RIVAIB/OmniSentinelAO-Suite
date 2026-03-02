@@ -1,7 +1,7 @@
 // src/app/api/agents/[id]/chat/route.ts
 import { NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { processMessage, createConversation } from '@/lib/ai/agent-service';
+import { processMessageWithAgent, createConversation, type AgentRow } from '@/lib/ai/agent-service';
 import { ok } from '@/lib/api/response';
 import { notFound, badRequest, serverError } from '@/lib/api/errors';
 
@@ -20,28 +20,34 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     const supabase = await createClient();
-    const { data: agent, error: agentError } = await supabase
+    const { data: raw, error: agentError } = await supabase
       .from('agents')
-      .select('id, name, status')
+      .select('id, name, type, status, config')
       .eq('id', id)
       .single();
 
-    if (agentError || !agent) return notFound(`Agent ${id}`);
+    if (agentError || !raw) return notFound(`Agent ${id}`);
 
-    if ((agent as { status: string }).status !== 'active') {
+    const agent = raw as { id: string; name: string; type: string; status: string; config: AgentRow['config'] };
+
+    if (agent.status !== 'active') {
       return badRequest(`Agent ${id} is not active`);
     }
+
+    const agentRow: AgentRow = {
+      id: agent.id,
+      name: agent.name,
+      type: agent.type,
+      status: agent.status,
+      config: agent.config ?? {},
+    };
 
     let convId = conversationId;
     if (!convId) {
       convId = await createConversation('webchat', 'dashboard-test');
     }
 
-    const result = await processMessage(
-      (agent as { name: string }).name,
-      convId,
-      message.trim()
-    );
+    const result = await processMessageWithAgent(agentRow, convId, message.trim());
 
     return ok({
       response: result.response,

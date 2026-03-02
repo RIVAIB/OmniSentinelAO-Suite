@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import { ok, created } from '@/lib/api/response';
 import { badRequest, serverError } from '@/lib/api/errors';
 import { routeMessage } from '@/lib/ai/router';
-import { processMessage, createConversation, getAgentByName } from '@/lib/ai/agent-service';
+import { processMessageWithAgent, createConversation, getAgentByName } from '@/lib/ai/agent-service';
 import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
@@ -87,16 +87,13 @@ export async function POST(request: NextRequest) {
             }
         }
 
-        // ── 3. Validate agent exists ─────────────────────────────────────────
-        const agent = await getAgentByName(agentName);
-        if (!agent) {
-            // Fallback to JESSY if the routed agent isn't in DB
-            agentName = 'JESSY';
-        }
+        // ── 3. Validate agent exists (fallback to JESSY) ─────────────────────
+        const agent = await getAgentByName(agentName) ?? await getAgentByName('JESSY');
+        if (!agent) throw new Error('No active agent available');
 
         // ── 4. Process through agent (saves user msg + agent reply) ──────────
-        const { response, agentName: respondingAgent } = await processMessage(
-            agentName,
+        const { response, agentName: respondingAgent } = await processMessageWithAgent(
+            agent,
             conversationId,
             message
         );

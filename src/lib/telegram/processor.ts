@@ -4,7 +4,7 @@
 import { sendMessage } from './client';
 import { transcribeVoice } from './voice';
 import { detectAgentMention } from './agent-parser';
-import { processMessage, createConversation, getAgentByName } from '@/lib/ai/agent-service';
+import { processMessage, processMessageWithAgent, createConversation, getAgentByName } from '@/lib/ai/agent-service';
 import { createClient } from '@/lib/supabase/server';
 import { callClaud } from './claud';
 import { callGem } from './gem';
@@ -131,8 +131,7 @@ export async function processUpdate(
                 const mentionedAgent = detectAgentMention(text);
                 const targetAgent = mentionedAgent ?? agentName;
 
-                const agent = await getAgentByName(targetAgent);
-                const finalAgent = agent ? targetAgent : agentName;
+                const fetchedAgent = await getAgentByName(targetAgent);
 
                 const convId = await createConversation('telegram', contactId);
 
@@ -141,7 +140,10 @@ export async function processUpdate(
                     ? `${text}\n[El usuario adjuntó una imagen]`
                     : text;
 
-                const result = await processMessage(finalAgent, convId, messageWithContext, contactId);
+                // Skip second lookup when agent row is already available
+                const result = fetchedAgent
+                    ? await processMessageWithAgent(fetchedAgent, convId, messageWithContext, contactId)
+                    : await processMessage(agentName, convId, messageWithContext, contactId);
                 reply = result.response;
             }
         }

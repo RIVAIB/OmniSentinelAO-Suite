@@ -81,50 +81,41 @@ export { addMessage as addMessageToConversation };
 // ─── Core processing ──────────────────────────────────────────────────────────
 
 /**
- * Process a user message through a specific agent.
- *
- * - Fetches agent config from DB
- * - Loads last 20 messages as Claude history
- * - Calls Claude
- * - Saves the agent response
- * - Returns the response text and agent metadata
+ * Process a user message through an already-loaded agent row.
+ * Use this when the caller already has the AgentRow to avoid a redundant DB lookup.
  */
-export async function processMessage(
-    agentName: string,
+export async function processMessageWithAgent(
+    agent: AgentRow,
     conversationId: string,
     userMessage: string,
-    contactId?: string          // Optional: Telegram user ID or session ID
+    contactId?: string
 ): Promise<{ response: string; agentId: string; agentName: string }> {
-    // 1. Load agent
-    const agent = await getAgentByName(agentName);
-    if (!agent) throw new Error(`Agent "${agentName}" not found or inactive`);
-
-    // 2. Assign agent to conversation if not already
+    // 1. Assign agent to conversation if not already
     const conv = await getConversation(conversationId);
     if (conv && !conv.agent_id) {
         await assignAgent(conversationId, agent.id);
     }
 
-    // 3. Get conversation history for Claude
+    // 2. Get conversation history for Claude
     const history: ConversationMessage[] = await getConversationHistory(conversationId, 20);
 
-    // 4. Save user message BEFORE calling Claude
+    // 3. Save user message BEFORE calling Claude
     await addMessage(conversationId, 'user', userMessage);
 
-    // 5. Build system prompt
+    // 4. Build system prompt
     const baseSystemPrompt =
         agent.config.systemPrompt ??
         `You are ${agent.name}, a helpful AI assistant for RIVAIB Health Clinic. Be professional and empathetic.`;
 
-    // 5b. Retrieve shared memory context (best-effort, non-blocking on failure)
+    // 4b. Retrieve shared memory context (best-effort, non-blocking on failure)
     const memUserId = contactId ?? conversationId;
     const [privateCtx, sharedCtx] = await Promise.all([
-        retrieve(agentName, userMessage, memUserId),
+        retrieve(agent.name, userMessage, memUserId),
         retrieveShared(userMessage, memUserId),
     ]);
 
     const memBlock = [
-        privateCtx  ? `## Tu memoria privada (${agentName}):\n${privateCtx}`  : '',
+        privateCtx  ? `## Tu memoria privada (${agent.name}):\n${privateCtx}`  : '',
         sharedCtx   ? `## Contexto compartido del equipo:\n${sharedCtx}`      : '',
     ].filter(Boolean).join('\n\n');
 
@@ -132,7 +123,7 @@ export async function processMessage(
         ? `${baseSystemPrompt}\n\n${memBlock}`
         : baseSystemPrompt;
 
-    // 6. Call Claude
+    // 5. Call Claude
     const response = await callAgent(
         {
             systemPrompt,
@@ -144,13 +135,28 @@ export async function processMessage(
         userMessage
     );
 
-    // 7. Save agent response
+    // 6. Save agent response
     await addMessage(conversationId, 'assistant', response, agent.name);
 
-    // 7b. Memorize the exchange (fire-and-forget — must not block response)
-    memorize(agentName, userMessage, response, memUserId).catch(
+    // 6b. Memorize the exchange (fire-and-forget — must not block response)
+    memorize(agent.name, userMessage, response, memUserId).catch(
         (err) => console.error('[Memory] memorize error:', err)
     );
 
     return { response, agentId: agent.id, agentName: agent.name };
+}
+
+/**
+ * Process a user message by agent name — fetches the agent row then delegates.
+ * Use this only when the caller doesn't already have an AgentRow.
+ */
+export async function processMessage(
+    agentName: string,
+    conversationId: string,
+    userMessage: string,
+    contactId?: string
+): Promise<{ response: string; agentId: string; agentName: string }> {
+    const agent = await getAgentByName(agentName);
+    if (!agent) throw new Error(`Agent "${agentName}" not found or inactive`);
+    return processMessageWithAgent(agent, conversationId, userMessage, contactId);
 }
