@@ -58,8 +58,16 @@ DEFAULT_CONFIG = {
     "history_db_path": os.environ.get("HISTORY_DB_PATH", "/app/history/history.db"),
 }
 
-# Initialize memory once at startup
-memory = Memory.from_config(DEFAULT_CONFIG)
+# ── Lazy memory initialization ────────────────────────────────────────────────
+# Do NOT initialize at module level — it blocks startup and kills the healthcheck.
+# mem0 connects to Supabase/pgvector on first use instead.
+_memory: Optional[Memory] = None
+
+def get_memory() -> Memory:
+    global _memory
+    if _memory is None:
+        _memory = Memory.from_config(DEFAULT_CONFIG)
+    return _memory
 
 
 # ── Pydantic models ───────────────────────────────────────────────────────────
@@ -111,7 +119,7 @@ async def create_memories(request: MemoryCreate):
             params["metadata"] = request.metadata
 
         messages = [{"role": msg.role, "content": msg.content} for msg in request.messages]
-        result = memory.add(messages, **params)
+        result = get_memory().add(messages, **params)
         return result
     except Exception as e:
         logger.error(f"Error creating memories: {e}")
@@ -133,7 +141,7 @@ async def get_memories(
         if run_id:
             params["run_id"] = run_id
 
-        result = memory.get_all(**params)
+        result = get_memory().get_all(**params)
         return {"results": result}
     except Exception as e:
         logger.error(f"Error getting memories: {e}")
@@ -151,7 +159,7 @@ async def search_memories(request: MemorySearch):
         if request.run_id:
             params["run_id"] = request.run_id
 
-        results = memory.search(request.query, **params)
+        results = get_memory().search(request.query, **params)
         return {"results": results}
     except Exception as e:
         logger.error(f"Error searching memories: {e}")
@@ -161,7 +169,7 @@ async def search_memories(request: MemorySearch):
 @app.put("/memories/{memory_id}")
 async def update_memory(memory_id: str, request: MemoryUpdate):
     try:
-        result = memory.update(memory_id, request.memory)
+        result = get_memory().update(memory_id, request.memory)
         return result
     except Exception as e:
         logger.error(f"Error updating memory {memory_id}: {e}")
@@ -177,7 +185,7 @@ async def delete_memories(
 ):
     try:
         if memory_id:
-            memory.delete(memory_id)
+            get_memory().delete(memory_id)
         else:
             params: Dict[str, Any] = {}
             if user_id:
@@ -186,7 +194,7 @@ async def delete_memories(
                 params["agent_id"] = agent_id
             if run_id:
                 params["run_id"] = run_id
-            memory.delete_all(**params)
+            get_memory().delete_all(**params)
         return {"message": "Memories deleted successfully"}
     except Exception as e:
         logger.error(f"Error deleting memories: {e}")
@@ -196,7 +204,7 @@ async def delete_memories(
 @app.get("/memories/{memory_id}/history")
 async def get_memory_history(memory_id: str):
     try:
-        result = memory.history(memory_id)
+        result = get_memory().history(memory_id)
         return {"history": result}
     except Exception as e:
         logger.error(f"Error getting memory history {memory_id}: {e}")
@@ -205,9 +213,9 @@ async def get_memory_history(memory_id: str):
 
 @app.post("/configure")
 async def configure(request: ConfigUpdate):
-    global memory
+    global _memory
     try:
-        memory = Memory.from_config(request.config)
+        _memory = Memory.from_config(request.config)
         return {"message": "Configuration updated successfully"}
     except Exception as e:
         logger.error(f"Error configuring memory: {e}")
