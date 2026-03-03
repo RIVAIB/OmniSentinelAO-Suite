@@ -3,7 +3,7 @@
 # Modifications applied:
 #   A) /health endpoint added
 #   B) CORS allow_origins=["*"] for local/Docker deployment
-#   C) DEFAULT_CONFIG uses pgvector + Neo4j (env-driven)
+#   C) DEFAULT_CONFIG uses pgvector → Supabase (env-driven, no Neo4j)
 
 import os
 import logging
@@ -31,26 +31,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ── Modification C: DEFAULT_CONFIG with pgvector + Neo4j ─────────────────────
+# ── Modification C: DEFAULT_CONFIG with pgvector → Supabase ──────────────────
 DEFAULT_CONFIG = {
     "vector_store": {
         "provider": "pgvector",
         "config": {
-            "host": os.environ.get("POSTGRES_HOST", "postgres"),
-            "port": int(os.environ.get("POSTGRES_PORT", "5432")),
-            "dbname": os.environ.get("POSTGRES_DB", "mem0"),
-            "user": os.environ.get("POSTGRES_USER", "mem0"),
-            "password": os.environ.get("POSTGRES_PASSWORD", "mem0pass"),
+            "url": os.environ.get("DATABASE_URL"),  # Supabase direct connection
             "collection_name": "memories",
             "embedding_model_dims": 1536,
-        }
-    },
-    "graph_store": {
-        "provider": "neo4j",
-        "config": {
-            "url": os.environ.get("NEO4J_URI", "bolt://neo4j:7687"),
-            "username": os.environ.get("NEO4J_USERNAME", "neo4j"),
-            "password": os.environ.get("NEO4J_PASSWORD", "mem0graph"),
         }
     },
     "llm": {
