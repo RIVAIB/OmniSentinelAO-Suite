@@ -54,7 +54,7 @@ function isBotAddressed(text: string, bot: BotIdentity): boolean {
         bot.kind === 'agent'  ? bot.agentName :
         bot.kind === 'claude' ? 'CLAUD' :
         /* gemini */            'GEM';
-    return new RegExp(`(?:^|\\s|@)${name}(?:\\s|,|\\.|$)`, 'i').test(text);
+    return new RegExp(`\\b${name}\\b`, 'i').test(text);
 }
 
 // ── Main processor ────────────────────────────────────────────────────────────
