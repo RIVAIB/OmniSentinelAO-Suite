@@ -43,6 +43,20 @@ async function clawdioReport(
     return response;
 }
 
+// ── Group mention guard ───────────────────────────────────────────────────────
+
+/**
+ * In groups, each bot only responds if its name is explicitly mentioned.
+ * Prevents all bots from responding to every message when privacy mode is off.
+ */
+function isBotAddressed(text: string, bot: BotIdentity): boolean {
+    const name =
+        bot.kind === 'agent'  ? bot.agentName :
+        bot.kind === 'claude' ? 'CLAUD' :
+        /* gemini */            'GEM';
+    return new RegExp(`(?:^|\\s|@)${name}(?:\\s|,|\\.|$)`, 'i').test(text);
+}
+
 // ── Main processor ────────────────────────────────────────────────────────────
 
 export async function processUpdate(
@@ -55,6 +69,13 @@ export async function processUpdate(
 
     const chatId = msg.chat.id;
     const contactId = msg.from?.id ? String(msg.from.id) : `channel-${chatId}`;
+
+    // In groups: only respond if this bot is directly addressed by name or @mention
+    const isGroup = msg.chat.type === 'group' || msg.chat.type === 'supergroup';
+    if (isGroup) {
+        const textToCheck = msg.text ?? msg.caption ?? '';
+        if (!isBotAddressed(textToCheck, bot)) return;
+    }
 
     // 1. Extract text and media from the message
     let text: string;
