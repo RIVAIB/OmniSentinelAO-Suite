@@ -70,10 +70,10 @@ export async function processUpdate(
     const chatId = msg.chat.id;
     const contactId = msg.from?.id ? String(msg.from.id) : `channel-${chatId}`;
 
-    // In groups: ERP agent bots only respond when explicitly addressed by name.
-    // CLAUD and GEM respond simultaneously to ALL group messages — no guard.
+    // In groups: every bot only responds when its own name is explicitly mentioned.
+    // Applies to all bot kinds (agent, claude, gemini) — prevents cross-bot noise.
     const isGroup = msg.chat.type === 'group' || msg.chat.type === 'supergroup';
-    if (isGroup && bot.kind === 'agent') {
+    if (isGroup) {
         const textToCheck = msg.text ?? msg.caption ?? '';
         if (!isBotAddressed(textToCheck, bot)) return;
     }
