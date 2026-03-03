@@ -78,6 +78,19 @@ export async function createConversation(
  */
 export { addMessage as addMessageToConversation };
 
+// ─── Memory gate ──────────────────────────────────────────────────────────────
+
+/**
+ * Memory gate — returns true only for confirmed patients.
+ * Currently stubbed as false for all Telegram contacts (contactId present).
+ * Web chat (no contactId) always gets memory (staff interactions).
+ * TODO: wire to contacts.is_patient via CRM payment confirmation (Phase 2).
+ */
+async function shouldMemorize(contactId: string | undefined): Promise<boolean> {
+    if (!contactId) return true; // web chat / staff — always memorize
+    return false; // Telegram contacts: gated until CRM activates is_patient flag
+}
+
 // ─── Core processing ──────────────────────────────────────────────────────────
 
 /**
@@ -107,12 +120,16 @@ export async function processMessageWithAgent(
         agent.config.systemPrompt ??
         `You are ${agent.name}, a helpful AI assistant for RIVAIB Health Clinic. Be professional and empathetic.`;
 
-    // 4b. Retrieve shared memory context (best-effort, non-blocking on failure)
+    // 4b. Retrieve memory context — gated by patient status
     const memUserId = contactId ?? conversationId;
-    const [privateCtx, sharedCtx] = await Promise.all([
-        retrieve(agent.name, userMessage, memUserId),
-        retrieveShared(userMessage, memUserId),
-    ]);
+    const memEnabled = await shouldMemorize(contactId);
+
+    const [privateCtx, sharedCtx] = memEnabled
+        ? await Promise.all([
+            retrieve(agent.name, userMessage, memUserId),
+            retrieveShared(userMessage, memUserId),
+          ])
+        : ['', ''];
 
     const memBlock = [
         privateCtx  ? `## Tu memoria privada (${agent.name}):\n${privateCtx}`  : '',
@@ -138,10 +155,12 @@ export async function processMessageWithAgent(
     // 6. Save agent response
     await addMessage(conversationId, 'assistant', response, agent.name);
 
-    // 6b. Memorize the exchange (fire-and-forget — must not block response)
-    memorize(agent.name, userMessage, response, memUserId).catch(
-        (err) => console.error('[Memory] memorize error:', err)
-    );
+    // 6b. Memorize — gated by patient status (fire-and-forget)
+    if (memEnabled) {
+        memorize(agent.name, userMessage, response, memUserId).catch(
+            (err) => console.error('[Memory] memorize error:', err)
+        );
+    }
 
     return { response, agentId: agent.id, agentName: agent.name };
 }
