@@ -2,7 +2,7 @@
 // GEM — tech advisor with Google Search grounding + vision + video.
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import type { Part } from '@google/generative-ai';
+import type { Part, Tool } from '@google/generative-ai';
 import { GEMINI_MODEL } from '@/lib/ai/models';
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY!);
@@ -52,7 +52,7 @@ export async function callGem(
 
     const result = await model.generateContent({
         contents: [{ role: 'user', parts }],
-        tools: [{ googleSearchRetrieval: {} }],
+        tools: [{ googleSearch: {} } as unknown as Tool],
     });
 
     return result.response.text();
